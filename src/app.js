@@ -71,7 +71,7 @@ app.post("/participants", async (req, res) => {
 	}
 });
 
-app.get("/message", async(req, res) => {
+app.get("/messages", async(req, res) => {
 	// buscando message
 	try {
 		const message = await db.collection("message").find().toArray()
@@ -87,7 +87,7 @@ const messageSchema = Joi.object({
 	type: Joi.string().required()
 	})
 
-app.post("/message", async (req, res) => {
+app.post("/messages", async (req, res) => {
 	// inserindo message
 
     const { to, text, type } = req.body;
@@ -108,7 +108,7 @@ app.post("/message", async (req, res) => {
     }
     
 	try {
-		await db.collection("message").insertOne(objMessage)
+		await db.collection("messages").insertOne(objMessage)
 		res.status(201).send(objMessage)
 	} catch (err){
 		res.status(500).send(err.message)
