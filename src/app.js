@@ -3,6 +3,7 @@ import cors from 'cors';
 import { MongoClient, ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
 import Joi from 'joi';
+import dayjs from 'dayjs';
 
 // criando a aplicação servidora
 const app = express();
@@ -23,6 +24,9 @@ try{
 }
 
 const db = mongoClient.db()
+
+console.log(dayjs().format('HH:MM:SS'));
+
 
 // funções/rotas (Endpoint)
 
@@ -56,7 +60,7 @@ app.post("/participants", async (req, res) => {
 		to: 'Todos',
 		text: 'entra na sala...',
 		type: 'status',
-		time: 'HH:mm:ss'//usar day js com datenow
+		time: dayjs().format('HH:MM:SS')//usar day js com datenow
 	}
 
 	try {
