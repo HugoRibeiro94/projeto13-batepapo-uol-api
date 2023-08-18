@@ -14,19 +14,26 @@ dotenv.config();
 
 // conectando ao banco
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
-let db;
 
-mongoClient.connect()
-	.then(() => db = mongoClient.db())
-	.catch((err) => console.log(err.message))
+try{
+	await mongoClient.connect()
+	console.log("MongoDB conected")
+} catch (err) {
+	console.log(err.message)
+}
+
+const db = mongoClient.db()
 
 // funções/rotas (Endpoint)
 
-app.get("/participants", (req, res) => {
+app.get("/participants", async (req, res) => {
 	// buscando participants
-	db.collection("participants").find().toArray()
-		.then(participants => res.send(participants))  // array de participants
-		.catch(err => res.status(500).send(err.message))  // mensagem de erro
+	try {
+		const participants = await db.collection("participants").find().toArray()
+		res.send(participants)
+	} catch (err){
+		res.status(500).send(err.message)
+	}
 });
 
 const participantsSchema = Joi.object({ name: Joi.string().required() })
@@ -44,42 +51,68 @@ app.post("/participants", async (req, res) => {
 
     const newParticipants = { name, lastStatus: Date.now()}
 
+	const messageStatus = { 
+		from: name,
+		to: 'Todos',
+		text: 'entra na sala...',
+		type: 'status',
+		time: 'HH:mm:ss'//usar day js com datenow
+	}
+
 	try {
 		const existRegister = await db.collection("participants").findOne({name})
 		if (existRegister) return res.status(409).send("Participante já cadastrado")
 
+		await db.collection("message").insertOne(messageStatus)
 		await db.collection("participants").insertOne(newParticipants)
 		res.status(201).send(newParticipants)
 	} catch (err){ 
 		res.status(500).send(err.message)
 	}
-	
-	
 });
 
-app.get("/message", (req, res) => {
+app.get("/message", async(req, res) => {
 	// buscando message
-	db.collection("message").find().toArray()
-		.then(message => res.send(message))  // array de message
-		.catch(err => res.status(500).send(err.message))  // mensagem de erro
+	try {
+		const message = await db.collection("message").find().toArray()
+		res.send(message)
+	} catch (err) {
+		res.status(500).send(err.message)
+	}
 });
 
-app.post("/message", (req, res) => {
+const messageSchema = Joi.object({
+	to: Joi.string().required(),
+	text: Joi.string().required(),
+	type: Joi.string().required()
+	})
+
+app.post("/message", async (req, res) => {
 	// inserindo message
 
-    const {from, to, text, type, time} = req.body;
+    const { to, text, type } = req.body;
+	const {name} = req.params;
 
-    const newMessage = {
-        from: from, 
+	const validation = messageSchema.validate(req.body, { abortEarly: false })
+
+	if (validation.error){
+		const errors = validation.error.details.map(det => det.message)
+		return res.status(422).send(errors)
+	}
+
+    const objMessage = {
+        from: name, 
         to: to, 
         text: text, 
         type: type, 
-        time: time
     }
     
-	db.collection("message").insertOne(newMessage)
-		.then(message => res.status(201).send(message))  // array de message
-		.catch(err => res.status(500).send(err.message))  // mensagem de erro
+	try {
+		await db.collection("message").insertOne(objMessage)
+		res.status(201).send(objMessage)
+	} catch (err){
+		res.status(500).send(err.message)
+	}
 });
 
 app.get("/", (request, response) => {
