@@ -63,7 +63,7 @@ app.post("/participants", async (req, res) => {
 		const existRegister = await db.collection("participants").findOne({name})
 		if (existRegister) return res.status(409).send("Participante já cadastrado")
 
-		await db.collection("message").insertOne(messageStatus)
+		await db.collection("messages").insertOne(messageStatus)
 		await db.collection("participants").insertOne(newParticipants)
 		res.status(201).send(newParticipants)
 	} catch (err){ 
@@ -84,7 +84,7 @@ app.get("/messages", async(req, res) => {
 const messageSchema = Joi.object({
 	to: Joi.string().required(),
 	text: Joi.string().required(),
-	type: Joi.string().required()
+	type: Joi.string().required()//fazer condição "Todos" ou "private-message"
 	})
 
 app.post("/messages", async (req, res) => {
