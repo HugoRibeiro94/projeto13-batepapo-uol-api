@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { MongoClient, ObjectId } from 'mongodb';
 import dotenv from 'dotenv';
+import Joi from 'joi';
 
 // criando a aplicação servidora
 const app = express();
@@ -28,18 +29,32 @@ app.get("/participants", (req, res) => {
 		.catch(err => res.status(500).send(err.message))  // mensagem de erro
 });
 
-app.post("/participants", (req, res) => {
+const participantsSchema = Joi.object({ name: Joi.string().required() })
+
+app.post("/participants", async (req, res) => {
 	// inserindo participants
-    const {name, lastStatus} = req.body;
+    const {name} = req.body;
 
-    const newParticipants = {
-        name: name,
-        lastStatus: lastStatus
-    }
+	const validation = participantsSchema.validate(req.body, { abortEarly: false })
 
-	db.collection("participants").insertOne(newParticipants)
-        .then(participants => res.send(participants))
-		.catch(err => console.log(err.message))
+	if (validation.error){
+		const errors = validation.error.details.map(det => det.message)
+		return res.status(422).send(errors)
+	}
+
+    const newParticipants = { name, lastStatus: Date.now()}
+
+	try {
+		const existRegister = await db.collection("participants").findOne({name})
+		if (existRegister) return res.status(409).send("Participante já cadastrado")
+
+		await db.collection("participants").insertOne(newParticipants)
+		res.status(201).send(newParticipants)
+	} catch (err){ 
+		res.status(500).send(err.message)
+	}
+	
+	
 });
 
 app.get("/message", (req, res) => {
@@ -63,7 +78,7 @@ app.post("/message", (req, res) => {
     }
     
 	db.collection("message").insertOne(newMessage)
-		.then(message => res.send(message))  // array de message
+		.then(message => res.status(201).send(message))  // array de message
 		.catch(err => res.status(500).send(err.message))  // mensagem de erro
 });
 
