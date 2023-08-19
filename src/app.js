@@ -67,9 +67,10 @@ app.post("/participants", async (req, res) => {
 		const existRegister = await db.collection("participants").findOne({name})
 		if (existRegister) return res.status(409).send("Participante já cadastrado")
 
-		await db.collection("messages").insertOne(messageStatus)
+		
 		await db.collection("participants").insertOne(newParticipants)
-		res.status(201).send(newParticipants)
+		db.collection("messages").insertOne(messageStatus)
+		res.status(201).send(messageStatus)
 	} catch (err){ 
 		res.status(500).send(err.message)
 	}
@@ -88,14 +89,15 @@ app.get("/messages", async(req, res) => {
 const messageSchema = Joi.object({
 	to: Joi.string().required(),
 	text: Joi.string().required(),
-	type: Joi.string().required()//fazer condição "Todos" ou "private-message"
-	})
+	type: Joi.string().valid("Todos", "private-message").required()//fazer condição 
+})
 
 app.post("/messages", async (req, res) => {
 	// inserindo message
 
     const { to, text, type } = req.body;
-	const {name} = req.params;
+	
+	const user = req.headers.User;
 
 	const validation = messageSchema.validate(req.body, { abortEarly: false })
 
@@ -105,10 +107,11 @@ app.post("/messages", async (req, res) => {
 	}
 
     const objMessage = {
-        from: name, 
+		from: user,
         to: to, 
         text: text, 
-        type: type, 
+        type: type,
+		time: dayjs().format('HH:mm:ss') 
     }
     
 	try {
