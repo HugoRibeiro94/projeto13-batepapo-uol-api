@@ -82,22 +82,21 @@ app.get("/messages", async(req, res) => {
 	// buscando message
 
 	const {limit} = req.query;
-	console.log(limit)
-	console.log(typeof(parseInt(limit)));
-
-	if ( parseInt(limit) <= 0 || isNaN(parseInt(limit)) ) {
-		return res.sendStatus(422);
-	}
 
 	try {
 		const message = await db.collection("messages").find().toArray()
 
 		if ( limit ){
-			const limitMessage = message.slice(-limit)
-			return res.send(limitMessage);
+			if ( parseInt(limit) <= 0 || isNaN(parseInt(limit)) ){
+				return res.sendStatus(422);
+			} else{
+				const limitMessage = message.slice(-limit)
+				return res.send(limitMessage);
+			}
 		}
-
+		
 		res.send(message)
+		
 	} catch (err) {
 		res.status(500).send(err.message)
 	}
@@ -106,7 +105,7 @@ app.get("/messages", async(req, res) => {
 const messageSchema = Joi.object({
 	to: Joi.string().required(),
 	text: Joi.string().required(),
-	type: Joi.string().valid("message", "private-message").required()//fazer condição 
+	type: Joi.string().valid("message", "private_message").required()//fazer condição 
 })
 
 app.post("/messages", async (req, res) => {
@@ -114,9 +113,9 @@ app.post("/messages", async (req, res) => {
 
     const { to, text, type } = req.body;
 	
-	const User = req.headers.User;
+	const User = req.headers.user;
 
-	if( !User ) return req.status(422)
+	if( !User ) return res.status(422)// validação do usuario
 	
 	const validation = messageSchema.validate(req.body, { abortEarly: false })
 
@@ -143,7 +142,7 @@ app.post("/messages", async (req, res) => {
 
 app.post('/status', async (req, res) => {
     try {
-      const User = req.headers.user;
+      const User = req.headers.User;
       if (!User) return res.sendStatus(404);
 
       const checkname = await db.collection('participants').findOne({ _name: new User })
