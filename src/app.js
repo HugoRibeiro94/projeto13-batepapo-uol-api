@@ -91,7 +91,7 @@ app.get("/messages", async(req, res) => {
 const messageSchema = Joi.object({
 	to: Joi.string().required(),
 	text: Joi.string().required(),
-	type: Joi.string().valid("Todos", "private-message").required()//fazer condição 
+	type: Joi.string().valid("message", "private-message").required()//fazer condição 
 })
 
 app.post("/messages", async (req, res) => {
@@ -99,8 +99,8 @@ app.post("/messages", async (req, res) => {
 
     const { to, text, type } = req.body;
 	
-	const user = req.headers['user-agent'];
-	console.log(user)
+	const User = req.headers['user-agent'];
+	
 	const validation = messageSchema.validate(req.body, { abortEarly: false })
 
 	if (validation.error){
@@ -109,7 +109,7 @@ app.post("/messages", async (req, res) => {
 	}
 
     const objMessage = {
-		from: user,
+		from: User,
         to: to, 
         text: text, 
         type: type,
