@@ -60,7 +60,7 @@ app.post("/participants", async (req, res) => {
 		to: 'Todos',
 		text: 'entra na sala...',
 		type: 'status',
-		time: dayjs().format('HH:MM:SS')//usar day js com datenow
+		time: dayjs(Date.now()).format('HH:mm:ss')//usar day js com datenow
 	}
 
 	try {
@@ -69,8 +69,10 @@ app.post("/participants", async (req, res) => {
 
 		
 		await db.collection("participants").insertOne(newParticipants)
-		db.collection("messages").insertOne(messageStatus)
-		res.status(201).send(messageStatus)
+		
+		await db.collection("messages").insertOne(messageStatus)
+
+		return res.status(201).send(messageStatus)
 	} catch (err){ 
 		res.status(500).send(err.message)
 	}
@@ -79,7 +81,7 @@ app.post("/participants", async (req, res) => {
 app.get("/messages", async(req, res) => {
 	// buscando message
 	try {
-		const message = await db.collection("message").find().toArray()
+		const message = await db.collection("messages").find().toArray()
 		res.send(message)
 	} catch (err) {
 		res.status(500).send(err.message)
@@ -97,8 +99,8 @@ app.post("/messages", async (req, res) => {
 
     const { to, text, type } = req.body;
 	
-	const user = req.headers.User;
-
+	const user = req.headers['user-agent'];
+	console.log(user)
 	const validation = messageSchema.validate(req.body, { abortEarly: false })
 
 	if (validation.error){
@@ -111,7 +113,7 @@ app.post("/messages", async (req, res) => {
         to: to, 
         text: text, 
         type: type,
-		time: dayjs().format('HH:mm:ss') 
+		time: dayjs(Date.now()).format('HH:mm:ss') 
     }
     
 	try {
