@@ -83,9 +83,12 @@ app.get("/messages", async(req, res) => {
 
 	const {limit} = req.query;
 
-	try {
-		const message = await db.collection("messages").find().toArray()
+	const user = req.headers.user;
 
+	try {
+		const message = await db.collection("messages").find({to:"Todos",$or:  [{to: user}], $or:  [{from: user}] }).toArray()
+		console.log(user);
+		
 		if ( limit ){
 			if ( parseInt(limit) <= 0 || isNaN(parseInt(limit)) ){
 				return res.sendStatus(422);
@@ -113,9 +116,7 @@ app.post("/messages", async (req, res) => {
 
     const { to, text, type } = req.body;
 	
-	const User = req.headers.user;
-
-	if( !User ) return res.status(422)// validação do usuario
+	const user = req.headers.user;
 	
 	const validation = messageSchema.validate(req.body, { abortEarly: false })
 
@@ -125,7 +126,7 @@ app.post("/messages", async (req, res) => {
 	}
 
     const objMessage = {
-		from: User,
+		from: user,
         to: to, 
         text: text, 
         type: type,
@@ -133,6 +134,12 @@ app.post("/messages", async (req, res) => {
     }
     
 	try {
+
+		if( !user ) return res.sendStatus(422)
+		const registerUser = await db.collection('participants').findOne({ name: user })
+		
+		if (!registerUser) return res.sendStatus(422);
+
 		await db.collection("messages").insertOne(objMessage)
 		res.status(201).send(objMessage)
 	} catch (err){
@@ -142,19 +149,19 @@ app.post("/messages", async (req, res) => {
 
 app.post('/status', async (req, res) => {
     try {
-      const User = req.headers.User;
-      if (!User) return res.sendStatus(404);
-
-      const checkname = await db.collection('participants').findOne({ _name: new User })
-      if (!checkname) return res.sendStatus(404);
+    const user = req.headers.user;
+    if( !user ) return res.sendStatus(422)
+	
+	const registerUser = await db.collection('participants').findOne({ name: user })	
+	if (!registerUser) return res.sendStatus(422);
 
       const userEdit = {
-        name: User,
+        name: user,
         lastStatus: Date.now()
     }
    
       await db.collection("participants")
-      .updateOne({ _name: new User }, { $set: userEdit});
+      .updateOne({ name: user }, { $set: userEdit});
 
    
       return res.sendStatus(200);
