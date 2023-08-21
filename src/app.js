@@ -60,7 +60,7 @@ app.post("/participants", async (req, res) => {
 		to: 'Todos',
 		text: 'entra na sala...',
 		type: 'status',
-		time: dayjs(Date.now()).format('HH:mm:ss')//usar day js com datenow
+		time: dayjs(Date.now()).format('HH:mm:ss')
 	}
 
 	try {
@@ -82,9 +82,12 @@ app.get("/messages", async(req, res) => {
 	// buscando message
 
 	const {limit} = req.query;
-	console.log(limit);
+	console.log(limit)
+	console.log(typeof(parseInt(limit)));
 
-	if ( limit <= 0 ) return res.status(422);
+	if ( parseInt(limit) <= 0 || isNaN(parseInt(limit)) ) {
+		return res.sendStatus(422);
+	}
 
 	try {
 		const message = await db.collection("messages").find().toArray()
@@ -112,6 +115,8 @@ app.post("/messages", async (req, res) => {
     const { to, text, type } = req.body;
 	
 	const User = req.headers.User;
+
+	if( !User ) return req.status(422)
 	
 	const validation = messageSchema.validate(req.body, { abortEarly: false })
 
@@ -134,6 +139,31 @@ app.post("/messages", async (req, res) => {
 	} catch (err){
 		res.status(500).send(err.message)
 	}
+});
+
+app.post('/status', async (req, res) => {
+    try {
+      const User = req.headers.user;
+      if (!User) return res.sendStatus(404);
+
+      const checkname = await db.collection('participants').findOne({ _name: new User })
+      if (!checkname) return res.sendStatus(404);
+
+      const userEdit = {
+        name: User,
+        lastStatus: Date.now()
+    }
+   
+      await db.collection("participants")
+      .updateOne({ _name: new User }, { $set: userEdit});
+
+   
+      return res.sendStatus(200);
+
+    } catch (error) {
+      console.error(error);
+      res.sendStatus(500);
+    }
 });
 
 app.get("/", (request, response) => {
