@@ -80,8 +80,20 @@ app.post("/participants", async (req, res) => {
 
 app.get("/messages", async(req, res) => {
 	// buscando message
+
+	const {limit} = req.query;
+	console.log(limit);
+
+	if ( limit <= 0 ) return res.status(422);
+
 	try {
 		const message = await db.collection("messages").find().toArray()
+
+		if ( limit ){
+			const limitMessage = message.slice(-limit)
+			return res.send(limitMessage);
+		}
+
 		res.send(message)
 	} catch (err) {
 		res.status(500).send(err.message)
@@ -99,7 +111,7 @@ app.post("/messages", async (req, res) => {
 
     const { to, text, type } = req.body;
 	
-	const User = req.headers['user-agent'];
+	const User = req.headers.User;
 	
 	const validation = messageSchema.validate(req.body, { abortEarly: false })
 
